@@ -1,0 +1,35 @@
+require 'telegram/bot'
+require 'dotenv/load'
+
+# 从环境文件中加载 Telegram API Token
+TOKEN = ENV['7594251898:AAHZOMv4F4WRZUg-SDrT0iPQgdPA8TsuDNU']
+
+user_balances = {}
+
+Telegram::Bot::Client.run(TOKEN) do |bot|
+  bot.listen do |message|
+    case message.text
+    when '/start'
+      bot.api.send_message(chat_id: message.chat.id, text: "欢迎使用 Telegram Bot！")
+    when '/balance'
+      user_id = message.from.id
+      balance = user_balances[user_id] || 0
+      bot.api.send_message(chat_id: message.chat.id, text: "你的余额是: #{balance}")
+    when /\/deposit (\d+)/
+      amount = $1.to_i
+      user_id = message.from.id
+      user_balances[user_id] ||= 0
+      user_balances[user_id] += amount
+      bot.api.send_message(chat_id: message.chat.id, text: "存款成功! 你现在有 #{user_balances[user_id]} 单位余额")
+    when /\/withdraw (\d+)/
+      amount = $1.to_i
+      user_id = message.from.id
+      if user_balances[user_id] && user_balances[user_id] >= amount
+        user_balances[user_id] -= amount
+        bot.api.send_message(chat_id: message.chat.id, text: "提款成功! 你现在有 #{user_balances[user_id]} 单位余额")
+      else
+        bot.api.send_message(chat_id: message.chat.id, text: "余额不足，无法提款")
+      end
+    end
+  end
+end
